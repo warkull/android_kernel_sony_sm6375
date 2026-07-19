@@ -1,0 +1,20 @@
+name: Kernel Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show system info
+        run: |
+          uname -a
+          gcc --version
+          clang --version || true
+          pwd
+          ls -la
