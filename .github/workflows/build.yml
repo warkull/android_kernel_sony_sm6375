@@ -10,20 +10,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install packages
+      - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install -y \
-            bc bison flex \
-            build-essential \
-            libssl-dev \
-            libelf-dev \
-            python3
+            bc bison flex make git curl \
+            clang lld llvm \
+            libssl-dev libelf-dev
 
-      - name: Prepare
+      - name: Configure
         run: |
-          make ARCH=arm64 vendor/holi-qgki_defconfig
+          make \
+            O=out \
+            ARCH=arm64 \
+            CC=clang \
+            LD=ld.lld \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            vendor/holi-qgki_defconfig
 
-      - name: Build kernel
+      - name: Build
         run: |
-          make -j$(nproc) ARCH=arm64
+          make -j$(nproc) \
+            O=out \
+            ARCH=arm64 \
+            CC=clang \
+            LD=ld.lld \
+            LLVM=1 \
+            LLVM_IAS=1
