@@ -30,12 +30,12 @@ jobs:
           ls -la mnt/
 
           echo "=== Full tree (max depth 4) ==="
-          find mnt -maxdepth 4 -type d
+          find mnt -maxdepth 4 -type d -not -path "*/lost+found*"
 
           echo "=== All .ko files with full paths ==="
-          find mnt -name "*.ko" | sort
+          find mnt -not -path "*/lost+found*" -name "*.ko" | sort
 
           echo "=== Count of .ko files ==="
-          find mnt -name "*.ko" | wc -l
+          find mnt -not -path "*/lost+found*" -name "*.ko" | wc -l
 
           sudo umount mnt
