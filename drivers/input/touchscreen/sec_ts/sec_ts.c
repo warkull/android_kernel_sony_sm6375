@@ -1522,7 +1522,7 @@ static int sec_ts_parse_dt(struct i2c_client * client)
 	pdata->power = sec_ts_power;
 
 	if (of_property_read_u32(np, "sec,always_lpmode", &pdata->always_lpmode) < 0)
-		pdata->always_lpmode = 0;
+		pdata->always_lpmode = 1;
 
 	if (of_property_read_u32(np, "sec,bringup", &pdata->bringup) < 0)
 		pdata->bringup = 0;
