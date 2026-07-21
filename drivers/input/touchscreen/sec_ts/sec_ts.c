@@ -1070,6 +1070,10 @@ static void sec_ts_read_event(struct sec_ts_data *ts)
 				/*						   	*/
 				break;
 			case SEC_TS_GESTURE_CODE_DOUBLE_TAP:
+				pm_wakeup_event(ts->input_dev->dev.parent, 1000);
+				input_report_key(ts->input_dev, KEY_WAKEUP, 1);
+				input_sync(ts->input_dev);
+				input_report_key(ts->input_dev, KEY_WAKEUP, 0);
 				/*							*/
 				/*  Gesture event handling 	*/
 				/*						   	*/
@@ -1708,6 +1712,7 @@ static void sec_ts_set_input_prop(struct sec_ts_data *ts, struct input_dev *dev,
 	set_bit(BTN_TOUCH, dev->keybit);
 	set_bit(BTN_TOOL_FINGER, dev->keybit);
 	set_bit(KEY_BLACK_UI_GESTURE, dev->keybit);
+	set_bit(KEY_WAKEUP, dev->keybit);
 #ifdef SEC_TS_SUPPORT_TOUCH_KEY
 	if (ts->plat_data->support_mskey) {
 		int i;
