@@ -40,7 +40,7 @@ jobs:
         run: |
           mkdir -p out/modules_staging
           make \
-            O=out ARCH=arm64 \
+            O=out ARCH=arm64 CC=clang LD=ld.lld LLVM=1 LLVM_IAS=1 \
             INSTALL_MOD_PATH=$PWD/out/modules_staging \
             INSTALL_MOD_STRIP=1 \
             modules_install
