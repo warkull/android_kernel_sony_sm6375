@@ -27,15 +27,15 @@ jobs:
           sudo mount -o loop vendor_dlkm-raw.img mnt
 
           echo "=== Top level structure ==="
-          ls -la mnt/
+          sudo ls -la mnt/
 
           echo "=== Full tree (max depth 4) ==="
-          find mnt -maxdepth 4 -type d -not -path "*/lost+found*"
+          sudo find mnt -maxdepth 4 -path "*/lost+found" -prune -o -type d -print
 
           echo "=== All .ko files with full paths ==="
-          find mnt -not -path "*/lost+found*" -name "*.ko" | sort
+          sudo find mnt -path "*/lost+found" -prune -o -name "*.ko" -print | sort
 
           echo "=== Count of .ko files ==="
-          find mnt -not -path "*/lost+found*" -name "*.ko" | wc -l
+          sudo find mnt -path "*/lost+found" -prune -o -name "*.ko" -print | wc -l
 
           sudo umount mnt
