@@ -14,9 +14,10 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y \
-            bc bison flex make git curl \
+            bc bison flex make git curl unzip \
             clang lld llvm \
-            libssl-dev libelf-dev
+            libssl-dev libelf-dev \
+            android-sdk-libsparse-utils
 
       - name: Merge defconfig fragments
         run: |
@@ -26,20 +27,79 @@ jobs:
             arch/arm64/configs/diffconfig/common.config \
             arch/arm64/configs/diffconfig/pdx225.config
 
-      - name: Build
+      - name: Build kernel and modules
         run: |
           make -j$(nproc) \
-            O=out \
-            ARCH=arm64 \
-            CC=clang \
-            LD=ld.lld \
-            LLVM=1 \
-            LLVM_IAS=1
+            O=out ARCH=arm64 CC=clang LD=ld.lld LLVM=1 LLVM_IAS=1
 
-      - name: Upload Image
+          make -j$(nproc) \
+            O=out ARCH=arm64 CC=clang LD=ld.lld LLVM=1 LLVM_IAS=1 \
+            modules
+
+      - name: Install modules to staging
+        run: |
+          mkdir -p out/modules_staging
+          make \
+            O=out ARCH=arm64 \
+            INSTALL_MOD_PATH=$PWD/out/modules_staging \
+            INSTALL_MOD_STRIP=1 \
+            modules_install
+
+          echo "=== Modules built ==="
+          find out/modules_staging -name "*.ko"
+
+      - name: Get magiskboot
+        run: |
+          curl -Lo magisk.apk https://github.com/topjohnwu/Magisk/releases/download/v30.7/Magisk-v30.7.apk
+          unzip -o magisk.apk -d magisk_extracted
+          cp magisk_extracted/lib/x86_64/libmagiskboot.so ./magiskboot
+          chmod +x ./magiskboot
+
+      - name: Download prebuilt boot.img and vendor_dlkm
+        run: |
+          curl -Lo boot.img https://github.com/warkull/android_kernel_sony_sm6375/releases/download/prebuilt-images/boot.img
+          curl -Lo vendor_dlkm-sparse.img https://github.com/warkull/android_kernel_sony_sm6375/releases/download/prebuilt-images/vendor_dlkm-sparse.img
+
+      - name: Repack boot.img with new kernel
+        run: |
+          mkdir -p bootimg_work
+          cp boot.img bootimg_work/
+          cd bootimg_work
+          ../magiskboot unpack boot.img
+          cp ../out/arch/arm64/boot/Image.gz ./kernel
+          ../magiskboot repack boot.img
+          mv new-boot.img ../new-boot.img
+          cd ..
+
+      - name: Repack vendor_dlkm with new modules
+        run: |
+          simg2img vendor_dlkm-sparse.img vendor_dlkm-raw.img
+          mkdir -p vendor_dlkm_mount
+          sudo mount -o loop vendor_dlkm-raw.img vendor_dlkm_mount
+
+          echo "=== Existing modules in vendor_dlkm ==="
+          sudo find vendor_dlkm_mount -path "*/lost+found" -prune -o -name "*.ko" -print
+
+          echo "=== Copying new modules (flat, matching existing structure) ==="
+          find out/modules_staging -name "*.ko" | while read -r modfile; do
+            modname=$(basename "$modfile")
+            if sudo test -f "vendor_dlkm_mount/lib/modules/$modname"; then
+              echo "Replacing: $modname"
+              sudo cp -v "$modfile" "vendor_dlkm_mount/lib/modules/$modname"
+            else
+              echo "Skipping (not in stock image): $modname"
+            fi
+          done
+
+          sudo umount vendor_dlkm_mount
+          img2simg vendor_dlkm-raw.img new-vendor_dlkm-sparse.img
+
+      - name: Upload all artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: kernel
+          name: kernel-flashable
           path: |
+            new-boot.img
+            new-vendor_dlkm-sparse.img
             out/arch/arm64/boot/Image*
             out/arch/arm64/boot/dts
