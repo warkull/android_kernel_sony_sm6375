@@ -1,0 +1,41 @@
+name: Inspect vendor_dlkm
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Install tools
+        run: |
+          sudo apt update
+          sudo apt install -y android-sdk-libsparse-utils
+
+      - name: Download vendor_dlkm
+        run: |
+          curl -Lo vendor_dlkm-sparse.img https://github.com/warkull/android_kernel_sony_sm6375/releases/download/prebuilt-images/vendor_dlkm-sparse.img
+
+      - name: Convert and inspect
+        run: |
+          file vendor_dlkm-sparse.img
+          simg2img vendor_dlkm-sparse.img vendor_dlkm-raw.img
+          file vendor_dlkm-raw.img
+
+          mkdir -p mnt
+          sudo mount -o loop vendor_dlkm-raw.img mnt
+
+          echo "=== Top level structure ==="
+          ls -la mnt/
+
+          echo "=== Full tree (max depth 4) ==="
+          find mnt -maxdepth 4 -type d
+
+          echo "=== All .ko files with full paths ==="
+          find mnt -name "*.ko" | sort
+
+          echo "=== Count of .ko files ==="
+          find mnt -name "*.ko" | wc -l
+
+          sudo umount mnt
