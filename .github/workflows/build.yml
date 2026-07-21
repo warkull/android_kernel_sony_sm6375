@@ -66,7 +66,7 @@ jobs:
           cp boot.img bootimg_work/
           cd bootimg_work
           ../magiskboot unpack boot.img
-          cp ../out/arch/arm64/boot/Image.gz ./kernel
+          cp ../out/arch/arm64/boot/Image ./kernel
           ../magiskboot repack boot.img
           mv new-boot.img ../new-boot.img
           cd ..
